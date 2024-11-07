@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>マインスイーパー</title>
+    <meta charset="UTF-8">
+    <style>
+        .game-container {
+            max-width: 431px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 5px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            gap: 3px;
+            background-color: #cccccc;
+            padding: 1px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: rgb(255, 255, 255);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .cell.revealed {
+            background-color: #ddd;
+        }
+        .cell.mine {
+            background-color: rgb(255, 0, 0);
+        }
+        .cell.flagged::after {
+            content: "🚩";
+        }
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>マインスイーパー</h1>
+
+    <div class="info-panel">
+        <div>残り地雷: <span id="mines-count" th:text="${gameState.remainingMines}">10</span></div>
+        <div>経過時間: <span id="timer" th:text="${gameState.timeElapsed}">0</span>秒</div>
+    </div>
+
+    <div id="board" class="board">
+        <!-- セルがJavaScriptによって生成されます -->
+    </div>
+
+    <button onclick="newGame()">ゲームをリセット</button>
+
+    <div class="instructions">
+        <h2>遊び方</h2>
+        <ul>
+            <li>左クリック: マスを開く</li>
+            <li>右クリック: フラグを置く/除去する</li>
+            <li>数字は周囲の地雷の数を表しています</li>
+            <li>すべての地雷以外のマスを開くとクリアです</li>
+            <li>地雷を踏むとゲームオーバーです</li>
+        </ul>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    let timerInterval;  // タイマーを更新するためのInterval ID
+    let startTime;      // ゲーム開始時間
+
+    // タイマーを開始する関数。1秒ごとに経過時間を更新
+    function startTimer() {
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    // タイマーを停止する関数
+    function stopTimer() {
+        clearInterval(timerInterval);
+    }
+
+    // 経過時間を計算して画面に表示する関数
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('timer').textContent = `${elapsed}秒`;
+    }
+
+    // 新しいゲームを開始する関数
+    function newGame() {
+        stopTimer();  // 前のタイマーを停止
+        fetch('/api/newGame', { method: 'POST' })
+            .then(response => response.json())
+            .then(gameState => {
+                updateGame(gameState);  // 新しいゲーム状態を表示
+                startTimer();           // タイマーを再スタート
+            })
+            .catch(console.error);      // エラー発生時にログを表示
+    }
+
+    // セルをクリックした際にサーバーへリクエストを送信する関数
+    function handleClick(row, col, isRightClick) {
+        fetch('/api/click', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ row, col, rightClick: isRightClick })
+        })
+            .then(response => response.json())
+            .then(gameState => {
+                updateGame(gameState);          // 新しいゲーム状態を表示
+                if (gameState.gameOver) {       // ゲーム終了時にタイマーを停止
+                    stopTimer();
+                }
+            })
+            .catch(console.error);              // エラー発生時にログを表示
+    }
+
+    // ゲーム画面を更新する関数
+    function updateGame(gameState) {
+        // 残り地雷数を更新
+        document.getElementById('mines-count').textContent = gameState.remainingMines;
+
+        // ボードを更新
+        const board = document.getElementById('board');
+        board.innerHTML = '';  // 既存のセルをクリア
+
+        gameState.board.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'cell';
+                cellElement.dataset.row = rowIndex;
+                cellElement.dataset.col = colIndex;
+
+                // セルの状態を反映
+                if (cell.revealed) {
+                    cellElement.classList.add('revealed');
+                    if (cell.mine) {
+                        cellElement.classList.add('mine');  // 地雷がある場合
+                    } else if (cell.adjacentMines > 0) {
+                        cellElement.textContent = cell.adjacentMines;  // 隣接する地雷の数を表示
+                    }
+                }
+
+                // フラグの状態を反映
+                if (cell.flagged) {
+                    cellElement.classList.add('flagged');
+                }
+
+                // 左クリックと右クリックのイベントリスナーを追加
+                cellElement.addEventListener('click', () => handleClick(rowIndex, colIndex, false));
+                cellElement.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    handleClick(rowIndex, colIndex, true);
+                });
+
+                board.appendChild(cellElement);  // セルをボードに追加
+            });
+        });
+
+        // ゲーム終了時のメッセージを表示
+        if (gameState.gameOver) {
+            alert(gameState.victory ? 'ゲームクリア！' : 'ゲームオーバー...');
+        }
+    }
+
+    // 右クリックによるコンテキストメニューを無効化
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ページ読み込み時にタイマーを開始
+    window.addEventListener('load', startTimer);
+</script>
+</body>
+</html>

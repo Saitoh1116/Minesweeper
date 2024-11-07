@@ -1,0 +1,116 @@
+/* 全体のスタイル */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+/* ゲームコンテナ */
+.game-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+/* 情報パネル */
+.info-panel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+/* ボード */
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr); /* 10列のグリッド */
+    gap: 1px; /* セル間の隙間 */
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* セルが開かれたとき */
+.cell.revealed {
+    background-color: #fff;
+    border-color: #aaa;
+}
+
+/* フラグが立てられたとき */
+.cell.flagged {
+    background-color: #ffcc00;
+}
+
+/* 地雷のスタイル */
+.cell.mine {
+    background-color: #ff4444;
+    color: white;
+}
+
+/* タイマーと残り地雷のスタイル */
+#mines-count,
+#timer {
+    font-weight: bold;
+}
+
+/* リセットボタン */
+button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    background-color: #4CAF50; /* 緑色 */
+    color: white;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049; /* ホバー時の色 */
+}
+
+
+#game-header {
+	margin-bottom: 10px;
+}
+
+#game-header span {
+	margin: 0 10px;
+}
+	
+#game-message {
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+
+/* 遊び方のスタイル */
+.instructions {
+    margin-top: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 5px;
+}
